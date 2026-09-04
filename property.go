@@ -167,7 +167,7 @@ func (s *Selection) RemoveClass(class ...string) *Selection {
 		} else {
 			classes, attr := getClassesAndAttr(n)
 			for _, rcl := range rclasses {
-				classes = strings.ReplaceAll(classes, " "+rcl+" ", " ")
+				classes = removeClassFromClasses(classes, rcl)
 			}
 
 			setClasses(n, attr, classes)
@@ -191,9 +191,8 @@ func (s *Selection) ToggleClass(class ...string) *Selection {
 	for _, n := range s.Nodes {
 		classes, attr := getClassesAndAttr(n)
 		for _, tcl := range tcls {
-			spaceAroundTcl := " " + tcl + " "
-			if strings.Contains(classes, spaceAroundTcl) {
-				classes = strings.ReplaceAll(classes, spaceAroundTcl, " ")
+			if strings.Contains(classes, " "+tcl+" ") {
+				classes = removeClassFromClasses(classes, tcl)
 			} else {
 				classes += tcl + " "
 			}
@@ -203,6 +202,20 @@ func (s *Selection) ToggleClass(class ...string) *Selection {
 	}
 
 	return s
+}
+
+// removeClassFromClasses removes every occurrence of cl from the normalized
+// class string. One ReplaceAll pass is not enough: adjacent occurrences
+// share the space between them, so " a a " holds only one " a ".
+func removeClassFromClasses(classes, cl string) string {
+	target := " " + cl + " "
+	for {
+		replaced := strings.Replace(classes, target, " ", 1)
+		if replaced == classes {
+			return classes
+		}
+		classes = replaced
+	}
 }
 
 func getAttributePtr(attrName string, n *html.Node) *html.Attribute {
