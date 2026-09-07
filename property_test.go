@@ -250,3 +250,62 @@ func TestToggleClass(t *testing.T) {
 		t.Errorf("Expected #nf1 to have no classes, have %q", a)
 	}
 }
+
+func TestRemoveClassRepeatedInSource(t *testing.T) {
+	cases := []struct {
+		class    string
+		remove   string
+		expected string
+	}{
+		{"a a", "a", ""},
+		{"a a a", "a", ""},
+		{"a b a", "a", "b"},
+		{"a b a b", "a", "b b"},
+		{"a b a b", "a b", ""},
+		{"a a b", "a", "b"},
+		{"b a a", "a", "b"},
+	}
+
+	for _, c := range cases {
+		doc, err := NewDocumentFromReader(strings.NewReader(`<div id="t" class="` + c.class + `"></div>`))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		sel := doc.Find("#t")
+		sel.RemoveClass(c.remove)
+
+		got, _ := sel.Attr("class")
+		if got != c.expected {
+			t.Errorf("class=%q RemoveClass(%q): got class %q, want %q", c.class, c.remove, got, c.expected)
+		}
+
+		for _, removed := range strings.Fields(c.remove) {
+			if sel.HasClass(removed) {
+				t.Errorf("class=%q RemoveClass(%q): still has class %q", c.class, c.remove, removed)
+			}
+		}
+	}
+}
+
+func TestToggleClassRepeatedInSource(t *testing.T) {
+	doc, err := NewDocumentFromReader(strings.NewReader(`<div id="t" class="a a b"></div>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sel := doc.Find("#t")
+
+	sel.ToggleClass("a")
+	if sel.HasClass("a") {
+		t.Error("expected #t to not have class a after toggling it off")
+	}
+	if !sel.HasClass("b") {
+		t.Error("expected #t to keep class b")
+	}
+
+	sel.ToggleClass("a")
+	if !sel.HasClass("a") {
+		t.Error("expected #t to have class a after toggling it back on")
+	}
+}
